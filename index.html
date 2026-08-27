@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive feelings wheel inspired by Gloria Willcox's 1982 Feeling Wheel.">
+  <title>Feelings Wheel</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #22262f;
+      --muted: #687084;
+      --line: #d9dee8;
+      --panel: #ffffff;
+      --paper: #f6f7f9;
+      --focus: #1d5fd1;
+      --shadow: 0 12px 34px rgba(35, 42, 55, 0.14);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.94), rgba(246,247,249,0.96)),
+        repeating-linear-gradient(90deg, rgba(34,38,47,0.035) 0 1px, transparent 1px 80px);
+      color: var(--ink);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 8px 0 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      border: 1px solid #cbd2de;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: inset 0 0 0 11px #f5f7fa, inset 0 0 0 17px #43a6a8;
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 1.2rem + 0.9vw, 2.25rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .search {
+      width: min(280px, 44vw);
+      min-height: 40px;
+      border: 1px solid #cbd2de;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+      outline: none;
+    }
+
+    .search:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(29, 95, 209, 0.16);
+    }
+
+    .tool-button {
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid #cbd2de;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .tool-button:hover {
+      background: #f0f3f7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .wheel-stage {
+      min-height: 690px;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+
+    svg {
+      width: min(100%, 760px);
+      height: auto;
+      overflow: visible;
+      touch-action: manipulation;
+    }
+
+    .slice {
+      stroke: #fff;
+      stroke-width: 2;
+      cursor: pointer;
+      transition: filter 160ms ease, opacity 160ms ease, transform 160ms ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .slice:hover,
+    .slice:focus {
+      filter: drop-shadow(0 8px 10px rgba(25, 30, 40, 0.24));
+      outline: none;
+    }
+
+    .slice.is-active {
+      filter: drop-shadow(0 9px 12px rgba(25, 30, 40, 0.28));
+    }
+
+    .slice.is-dimmed {
+      opacity: 0.2;
+    }
+
+    .wheel-label {
+      pointer-events: none;
+      fill: #1f2530;
+      font-weight: 720;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      paint-order: stroke;
+      stroke: rgba(255, 255, 255, 0.72);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    .primary-label {
+      font-size: 19px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .secondary-label {
+      font-size: 15px;
+    }
+
+    .tertiary-label {
+      font-size: 11px;
+      font-weight: 660;
+    }
+
+    .center-disc {
+      fill: #ffffff;
+      stroke: #cbd2de;
+      stroke-width: 2;
+      filter: drop-shadow(0 8px 14px rgba(35, 42, 55, 0.12));
+    }
+
+    .center-title {
+      font-size: 28px;
+      font-weight: 760;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      fill: var(--ink);
+    }
+
+    .center-subtitle {
+      font-size: 12px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      fill: var(--muted);
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      position: sticky;
+      top: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-main {
+      padding: 22px;
+    }
+
+    .selected-kicker {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 760;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .selected-title {
+      margin: 0;
+      font-size: 2rem;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .selected-path {
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .prompt {
+      margin: 18px 0 0;
+      padding: 14px;
+      border-left: 4px solid var(--accent, #718096);
+      background: #f8fafc;
+      color: #303847;
+      line-height: 1.45;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .chip {
+      border: 1px solid #cbd2de;
+      border-radius: 999px;
+      background: #fff;
+      padding: 6px 10px;
+      color: #303847;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .chip:hover,
+    .chip:focus {
+      border-color: var(--accent, #718096);
+      outline: none;
+    }
+
+    .legend {
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0;
+    }
+
+    .legend button {
+      min-height: 46px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .legend button:nth-child(2n) {
+      border-right: 0;
+    }
+
+    .legend button:hover,
+    .legend button:focus {
+      background: #f4f6f9;
+      outline: none;
+    }
+
+    .swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      flex: 0 0 auto;
+    }
+
+    .source {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .source a {
+      color: #285aa8;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .wheel-stage {
+        min-height: auto;
+        padding: 2px;
+      }
+
+      .panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        padding: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .search {
+        width: calc(100% - 50px);
+      }
+
+      .primary-label {
+        font-size: 15px;
+      }
+
+      .secondary-label {
+        font-size: 11px;
+      }
+
+      .tertiary-label {
+        font-size: 8.5px;
+        stroke-width: 3px;
+      }
+
+      .center-title {
+        font-size: 22px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .app {
+        padding: 0;
+      }
+
+      .toolbar,
+      .panel {
+        display: none;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      .wheel-stage {
+        min-height: 0;
+      }
+
+      svg {
+        width: 100%;
+        max-height: 95vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>Feelings Wheel</h1>
+          <p class="subtitle">A visual vocabulary tool inspired by Gloria Willcox's six-part wheel.</p>
+        </div>
+      </div>
+      <div class="toolbar" aria-label="Wheel tools">
+        <input id="search" class="search" type="search" placeholder="Search a feeling" autocomplete="off">
+        <button class="tool-button" id="printButton" title="Print wheel" aria-label="Print wheel">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M6 9V2h12v7"></path>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <path d="M6 14h12v8H6z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="layout" aria-label="Interactive feelings wheel">
+      <div class="wheel-stage">
+        <svg id="wheel" viewBox="-420 -420 840 840" role="img" aria-labelledby="wheelTitle wheelDesc">
+          <title id="wheelTitle">Interactive feelings wheel</title>
+          <desc id="wheelDesc">A circular chart with six primary feelings and two outer rings of related feeling words.</desc>
+        </svg>
+      </div>
+
+      <aside class="panel" aria-live="polite">
+        <div class="panel-main" id="details"></div>
+        <div class="legend" id="legend" aria-label="Primary feelings"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const wheelData = [
+      {
+        primary: "Mad",
+        color: "#d95a50",
+        prompt: "Anger often points to a boundary, injustice, or blocked need.",
+        groups: [
+          { secondary: "Frustrated", tertiary: ["Irritated", "Blocked", "Impatient"] },
+          { secondary: "Resentful", tertiary: ["Bitter", "Jealous", "Indignant"] }
+        ]
+      },
+      {
+        primary: "Sad",
+        color: "#4f82c0",
+        prompt: "Sadness often asks for care, comfort, mourning, or honest support.",
+        groups: [
+          { secondary: "Hurt", tertiary: ["Rejected", "Lonely", "Wounded"] },
+          { secondary: "Grief", tertiary: ["Empty", "Heavy", "Discouraged"] }
+        ]
+      },
+      {
+        primary: "Scared",
+        color: "#8b6ab3",
+        prompt: "Fear often signals uncertainty, vulnerability, or a need for safety.",
+        groups: [
+          { secondary: "Anxious", tertiary: ["Worried", "Uneasy", "Overwhelmed"] },
+          { secondary: "Vulnerable", tertiary: ["Exposed", "Helpless", "Insecure"] }
+        ]
+      },
+      {
+        primary: "Joyful",
+        color: "#e2a93f",
+        prompt: "Joy often shows connection, play, satisfaction, or something worth savoring.",
+        groups: [
+          { secondary: "Delighted", tertiary: ["Playful", "Amused", "Eager"] },
+          { secondary: "Grateful", tertiary: ["Appreciative", "Touched", "Hopeful"] }
+        ]
+      },
+      {
+        primary: "Powerful",
+        color: "#4d9e63",
+        prompt: "Power can point to agency, capacity, confidence, or readiness to act.",
+        groups: [
+          { secondary: "Confident", tertiary: ["Capable", "Proud", "Grounded"] },
+          { secondary: "Courageous", tertiary: ["Brave", "Determined", "Resilient"] }
+        ]
+      },
+      {
+        primary: "Peaceful",
+        color: "#43a6a8",
+        prompt: "Peace can point to regulation, acceptance, spaciousness, or inner steadiness.",
+        groups: [
+          { secondary: "Calm", tertiary: ["Centered", "Relaxed", "Safe"] },
+          { secondary: "Content", tertiary: ["Satisfied", "Present", "Open"] }
+        ]
+      }
+    ];
+
+    const svg = document.querySelector("#wheel");
+    const details = document.querySelector("#details");
+    const legend = document.querySelector("#legend");
+    const search = document.querySelector("#search");
+    const printButton = document.querySelector("#printButton");
+    const ns = "http://www.w3.org/2000/svg";
+    const state = { active: null, filter: "" };
+    const slices = [];
+
+    function polar(radius, angle) {
+      const radians = (angle - 90) * Math.PI / 180;
+      return { x: radius * Math.cos(radians), y: radius * Math.sin(radians) };
+    }
+
+    function arcPath(innerRadius, outerRadius, startAngle, endAngle) {
+      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+      const outerStart = polar(outerRadius, startAngle);
+      const outerEnd = polar(outerRadius, endAngle);
+      const innerEnd = polar(innerRadius, endAngle);
+      const innerStart = polar(innerRadius, startAngle);
+      return [
+        `M ${outerStart.x} ${outerStart.y}`,
+        `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+        `L ${innerEnd.x} ${innerEnd.y}`,
+        `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+        "Z"
+      ].join(" ");
+    }
+
+    function mixWithWhite(hex, amount) {
+      const value = hex.replace("#", "");
+      const rgb = [0, 2, 4].map((index) => parseInt(value.slice(index, index + 2), 16));
+      const mixed = rgb.map((channel) => Math.round(channel + (255 - channel) * amount));
+      return `rgb(${mixed.join(", ")})`;
+    }
+
+    function addText(label, radius, angle, className, rotate = true) {
+      const point = polar(radius, angle);
+      const text = document.createElementNS(ns, "text");
+      text.setAttribute("class", `wheel-label ${className}`);
+      text.setAttribute("x", point.x);
+      text.setAttribute("y", point.y);
+      if (rotate) {
+        let rotation = angle;
+        if (rotation > 90 && rotation < 270) rotation += 180;
+        text.setAttribute("transform", `rotate(${rotation}, ${point.x}, ${point.y})`);
+      }
+      text.textContent = label;
+      svg.appendChild(text);
+      return text;
+    }
+
+    function makeSlice(item) {
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", arcPath(item.innerRadius, item.outerRadius, item.startAngle, item.endAngle));
+      path.setAttribute("fill", item.fill);
+      path.setAttribute("class", "slice");
+      path.setAttribute("tabindex", "0");
+      path.setAttribute("role", "button");
+      path.setAttribute("aria-label", item.path.join(", "));
+      path.dataset.words = item.path.join(" ").toLowerCase();
+      path.addEventListener("click", () => selectItem(item));
+      path.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectItem(item);
+        }
+      });
+      path.addEventListener("mouseenter", () => previewItem(item));
+      svg.appendChild(path);
+      item.node = path;
+      slices.push(item);
+      return path;
+    }
+
+    function renderWheel() {
+      const sector = 360 / wheelData.length;
+      const offset = -sector / 2;
+
+      wheelData.forEach((section, index) => {
+        const start = offset + index * sector;
+        const end = start + sector;
+        const groupAngle = sector / section.groups.length;
+
+        makeSlice({
+          type: "primary",
+          primary: section.primary,
+          fill: mixWithWhite(section.color, 0.06),
+          accent: section.color,
+          prompt: section.prompt,
+          path: [section.primary],
+          innerRadius: 92,
+          outerRadius: 178,
+          startAngle: start,
+          endAngle: end
+        });
+        addText(section.primary, 136, start + sector / 2, "primary-label");
+
+        section.groups.forEach((group, groupIndex) => {
+          const groupStart = start + groupIndex * groupAngle;
+          const groupEnd = groupStart + groupAngle;
+          const tertiaryAngle = groupAngle / group.tertiary.length;
+
+          makeSlice({
+            type: "secondary",
+            primary: section.primary,
+            secondary: group.secondary,
+            fill: mixWithWhite(section.color, 0.28),
+            accent: section.color,
+            prompt: section.prompt,
+            path: [section.primary, group.secondary],
+            innerRadius: 178,
+            outerRadius: 272,
+            startAngle: groupStart,
+            endAngle: groupEnd
+          });
+          addText(group.secondary, 225, groupStart + groupAngle / 2, "secondary-label");
+
+          group.tertiary.forEach((word, wordIndex) => {
+            const wordStart = groupStart + wordIndex * tertiaryAngle;
+            const wordEnd = wordStart + tertiaryAngle;
+            makeSlice({
+              type: "specific",
+              primary: section.primary,
+              secondary: group.secondary,
+              feeling: word,
+              fill: mixWithWhite(section.color, 0.48),
+              accent: section.color,
+              prompt: section.prompt,
+              path: [section.primary, group.secondary, word],
+              innerRadius: 272,
+              outerRadius: 388,
+              startAngle: wordStart,
+              endAngle: wordEnd
+            });
+            addText(word, 331, wordStart + tertiaryAngle / 2, "tertiary-label");
+          });
+        });
+      });
+
+      const center = document.createElementNS(ns, "circle");
+      center.setAttribute("class", "center-disc");
+      center.setAttribute("r", "88");
+      svg.appendChild(center);
+      addText("Feel", 0, 0, "center-title", false);
+      const subtitle = addText("name it clearly", 30, 180, "center-subtitle", false);
+      subtitle.setAttribute("y", 28);
+    }
+
+    function renderLegend() {
+      wheelData.forEach((section) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.innerHTML = `<span class="swatch" style="background:${section.color}"></span><span>${section.primary}</span>`;
+        button.addEventListener("click", () => selectItem({
+          primary: section.primary,
+          type: "primary",
+          path: [section.primary],
+          accent: section.color,
+          prompt: section.prompt
+        }));
+        legend.appendChild(button);
+      });
+    }
+
+    function selectItem(item) {
+      state.active = item;
+      updateDetails(item);
+      updateSlices();
+    }
+
+    function previewItem(item) {
+      if (!state.active) updateDetails(item);
+    }
+
+    function updateDetails(item) {
+      const related = item.primary
+        ? wheelData.find((section) => section.primary === item.primary)
+        : wheelData[0];
+      const relatedWords = related.groups.flatMap((group) => [group.secondary, ...group.tertiary]).slice(0, 8);
+      const title = item.feeling || item.secondary || item.primary || "Choose a feeling";
+      details.style.setProperty("--accent", item.accent || related.color);
+      details.innerHTML = `
+        <p class="selected-kicker">${item.type ? item.type : "start here"}</p>
+        <h2 class="selected-title">${title}</h2>
+        <p class="selected-path">${item.path ? item.path.join(" / ") : "Move from the center outward to get more precise."}</p>
+        <p class="prompt">${item.prompt || "Click a word in the wheel to see its emotional neighborhood."}</p>
+        <div class="chips">
+          ${relatedWords.map((word) => `<button class="chip" type="button" data-word="${word}">${word}</button>`).join("")}
+        </div>
+        <p class="source">Inspired by Gloria Willcox's 1982 Feeling Wheel framework: six primary feelings with more specific outer rings. This page uses an original word set and layout.</p>
+      `;
+      details.querySelectorAll(".chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          search.value = chip.dataset.word;
+          state.filter = chip.dataset.word.toLowerCase();
+          updateSlices();
+        });
+      });
+    }
+
+    function updateSlices() {
+      const activePath = state.active ? state.active.path.join(" ") : "";
+      slices.forEach((item) => {
+        const matchesFilter = !state.filter || item.node.dataset.words.includes(state.filter);
+        const matchesActive = !state.active || item.path.join(" ") === activePath || item.primary === state.active.primary;
+        item.node.classList.toggle("is-dimmed", !matchesFilter || !matchesActive);
+        item.node.classList.toggle("is-active", state.active && item.path.join(" ") === activePath);
+      });
+    }
+
+    search.addEventListener("input", () => {
+      state.filter = search.value.trim().toLowerCase();
+      updateSlices();
+    });
+
+    printButton.addEventListener("click", () => window.print());
+
+    renderWheel();
+    renderLegend();
+    updateDetails({});
+  </script>
+</body>
+</html>
