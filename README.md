@@ -21,6 +21,5 @@ Open `index.html` in a browser, or serve the folder with any static web server.
 
 Inspired by:
 
-- Gloria Willcox, "The Feeling Wheel: A Tool for Expanding Awareness of Emotions and Increasing Spontaneity and Intimacy", *Transactional Analysis Journal*, 1982.
-- Public summaries of the Willcox wheel describe six primary feelings with two outer concentric rings of related secondary feelings.
-
+- Gloria Willcox, "The Feeling Wheel: A Tool for Expanding Awareness of Emotions and Increasing Spontaneity and Intimacy", *Transactional Analysis Journal*, 1982: https://journals.sagepub.com/doi/abs/10.1177/036215378201200411
+- Public summaries of the Willcox wheel describe six primary feelings with two outer concentric rings of related secondary feelings: https://allthefeelz.app/feeling-wheel/
